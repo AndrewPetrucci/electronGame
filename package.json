@@ -1,0 +1,16 @@
+{
+  "name": "electron-game",
+  "version": "1.0.0",
+  "description": "A game built with Electron",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron ."
+  },
+  "keywords": ["electron", "game"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}
