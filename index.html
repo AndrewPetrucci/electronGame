@@ -3,15 +3,67 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; frame-src https://strudel.cc https://www.deezer.com https://widget.deezer.com" />
   <title>Electron Game</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- Settings overlay (Escape to open) -->
+  <div id="settings-overlay" class="settings-overlay" hidden>
+    <div class="settings-panel" id="settings-panel">
+      <h2 class="settings-title">Settings</h2>
+      <button type="button" class="settings-btn" id="settings-music-btn">Music</button>
+    </div>
+    <div class="settings-panel music-settings-menu" id="music-settings-menu" hidden>
+      <button type="button" class="settings-back" id="music-settings-back">← Back</button>
+      <h2 class="settings-title">Music</h2>
+      <div class="volume-row">
+        <label for="music-volume">Volume</label>
+        <input type="range" id="music-volume" min="0" max="100" value="80" />
+        <span id="music-volume-value">80</span>%
+      </div>
+    </div>
+  </div>
+
   <div class="game-container">
-    <h1 class="title">Electron Game</h1>
-    <p class="subtitle">Your game starts here</p>
-    <div class="info">Electron v<span id="version"></span></div>
+    <div id-"enemy-resources" class="enemy-resources">
+      <div id-"enemy-deck" class="enemy-deck">Deck</div>
+      <div id-"enemy-pool" class="enemy-pool">Pool</div>
+      <div id="enemy-hand" class="enemy-hand">
+        <div class="hand-slot"></div>
+        <div class="hand-slot"></div>
+        <div class="hand-slot"></div>
+        <div class="hand-slot"></div>
+        <div class="hand-slot"></div>
+      </div>
+      <div id-"enemy-graveyard" class="enemy-graveyard">Graveyard</div>
+    </div>
+    <div id="enemy-board" class="enemy-board">
+      <div class="board-slot"></div>
+      <div class="board-slot"></div>
+      <div class="board-slot"></div>
+      <div class="board-slot"></div>
+      <div class="board-slot"></div>
+    </div>
+    <div id="player-board" class="player-board">
+      <div class="board-slot"></div>
+      <div class="board-slot"></div>
+      <div class="board-slot"></div>
+      <div class="board-slot"></div>
+      <div class="board-slot"></div>
+    </div>
+    <div id-"player-resources" class="player-resources">
+      <div id-"player-deck" class="player-deck">Deck</div>
+      <div id-"player-pool" class="player-pool">Pool</div>
+      <div id="player-hand" class="player-hand">
+        <div class="hand-slot"></div>
+        <div class="hand-slot"></div>
+        <div class="hand-slot"></div>
+        <div class="hand-slot"></div>
+        <div class="hand-slot"></div>
+      </div>
+      <div id-"player-graveyard" class="player-graveyard">Graveyard</div>
+    </div>
   </div>
   <script src="renderer.js"></script>
 </body>

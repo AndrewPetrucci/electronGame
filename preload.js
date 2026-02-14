@@ -1,6 +1,6 @@
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  // Expose safe APIs to the renderer here
   getVersion: () => process.versions.electron,
+  loadStrudelFile: () => ipcRenderer.invoke('load-strudel-file'),
 });

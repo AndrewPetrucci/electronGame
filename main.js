@@ -1,5 +1,6 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -15,6 +16,11 @@ function createWindow() {
   mainWindow.loadFile('index.html');
   mainWindow.webContents.openDevTools({ mode: 'detach' });
 }
+
+ipcMain.handle('load-strudel-file', async () => {
+  const filePath = path.join(__dirname, 'src', 'music', 'coastline.strudel');
+  return fs.promises.readFile(filePath, 'utf-8');
+});
 
 app.whenReady().then(() => {
   createWindow();
