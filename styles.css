@@ -20,6 +20,7 @@ body {
 }
 
 .game-container {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -27,6 +28,26 @@ body {
   width: 100%;
   min-height: 100vh;
   height: 100%;
+}
+
+.end-turn-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  color: #eee;
+  background: rgba(233, 69, 96);
+  border: 1px solid rgba(233, 69, 96);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.end-turn-btn:hover {
+  background: rgba(233, 69, 96, 0.5);
+  border-color: #e94560;
 }
 
 .title {
@@ -258,4 +279,159 @@ body {
 .player-board, .player-resources {
   background-color: #0f3460;
   border: 2px solid #3a8ef4;
+}
+
+/* Cards in hand */
+.enemy-hand,
+.player-hand {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  width: 65%;
+  flex-shrink: 0;
+}
+
+.enemy-hand .hand-slot,
+.player-hand .hand-slot {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card {
+  width: 100%;
+  min-height: 3.5rem;
+  background: linear-gradient(145deg, #2d2d44 0%, #1a1a2e 100%);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  cursor: default;
+  position: relative;
+  font-size: 0.7rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.card--playable {
+  cursor: pointer;
+  border-color: rgba(58, 142, 244, 0.7);
+}
+
+.card--playable:hover {
+  border-color: #3a8ef4;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(58, 142, 244, 0.3);
+}
+
+.card--selected {
+  border-color: #e94560;
+  box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.5);
+}
+
+.card__cost {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  width: 1.1rem;
+  height: 1.1rem;
+  background: linear-gradient(180deg, #4a90d9 0%, #2d5a8a 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.65rem;
+}
+
+.card__name {
+  font-weight: 600;
+  text-align: center;
+  margin-top: 0.9rem;
+  line-height: 1.1;
+}
+
+.card__stats {
+  font-size: 0.65rem;
+  opacity: 0.9;
+}
+
+.card--back {
+  background: linear-gradient(145deg, #3d2d2d 0%, #2d1a1a 100%);
+  border-color: rgba(233, 69, 96, 0.4);
+}
+
+.card--back .card__back-text {
+  font-size: 1rem;
+  opacity: 0.6;
+}
+
+/* Minions on board */
+.board-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+}
+
+.minion {
+  width: 100%;
+  min-height: 2.5rem;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  padding: 0.25rem;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  grid-template-rows: 1fr auto;
+  gap: 0 0.25rem;
+  align-items: center;
+  font-size: 0.65rem;
+  position: relative;
+}
+
+.minion__name {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.minion__attack {
+  width: 1.25rem;
+  height: 1.25rem;
+  background: #c9302c;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.minion__health {
+  width: 1.25rem;
+  height: 1.25rem;
+  background: #1e7e34;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.minion--drop-target {
+  cursor: pointer;
+  border-color: rgba(58, 142, 244, 0.8);
+}
+
+.minion--drop-target:hover {
+  background: rgba(58, 142, 244, 0.2);
+  border-color: #3a8ef4;
 }
