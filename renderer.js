@@ -13,6 +13,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     { id: 'm10', name: 'Frostwolf', cost: 2, attack: 2, health: 2 },
   ];
 
+  const CARD_BY_ID = Object.fromEntries(CARD_POOL.map((c) => [c.id, c]));
+
+  // Decklists: array of card ids (20 cards each). Player = aggressive curve; Enemy = midrange.
+  const PLAYER_DECKLIST = [
+    'm1', 'm1', 'm2', 'm2', 'm2', 'm2', 'm3', 'm3', 'm10', 'm10',
+    'm7', 'm7', 'm4', 'm4', 'm8', 'm8', 'm5', 'm5', 'm9', 'm6',
+  ];
+  const ENEMY_DECKLIST = [
+    'm2', 'm2', 'm3', 'm3', 'm4', 'm4', 'm4', 'm5', 'm5', 'm5',
+    'm8', 'm8', 'm9', 'm9', 'm6', 'm6', 'm7', 'm10', 'm1', 'm1',
+  ];
+
   function createCard(cardDef) {
     return { ...cardDef, instanceId: cardDef.id + '-' + Math.random().toString(36).slice(2, 9) };
   }
@@ -26,9 +38,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     return a;
   }
 
+  const HERO_MAX_HEALTH = 30;
+
   // --- Game state ---
   let state = {
-    turn: 'player', // 'player' | 'enemy'
+    turn: 'player',
+    gameOver: null, // null | 'player' | 'enemy' (winner)
     player: {
       deck: [],
       hand: [],
@@ -36,6 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       graveyard: [],
       mana: 0,
       maxMana: 0,
+      heroHealth: HERO_MAX_HEALTH,
     },
     enemy: {
       deck: [],
@@ -44,9 +60,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       graveyard: [],
       mana: 0,
       maxMana: 0,
+      heroHealth: HERO_MAX_HEALTH,
     },
     selectedCardIndex: null,
     selectedBoardSlot: null,
+    selectedAttackerSlot: null, // player board slot index when choosing attack target
   };
 
   function getPlayer() {
@@ -58,15 +76,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function initDecks() {
-    const buildDeck = () => {
-      const deck = [];
-      for (let i = 0; i < 2; i++) {
-        CARD_POOL.forEach((c) => deck.push(createCard(c)));
-      }
+    function buildDeckFromList(decklist) {
+      const deck = decklist.map((id) => createCard(CARD_BY_ID[id]));
       return shuffle(deck);
-    };
-    state.player.deck = buildDeck();
-    state.enemy.deck = buildDeck();
+    }
+    state.player.deck = buildDeckFromList(PLAYER_DECKLIST);
+    state.enemy.deck = buildDeckFromList(ENEMY_DECKLIST);
   }
 
   function drawCard(side) {
@@ -79,47 +94,103 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function playCard(side, handIndex, boardIndex) {
     const p = side === 'player' ? state.player : state.enemy;
-    if (handIndex < 0 || handIndex >= p.hand.length) return false;
-    if (boardIndex < 0 || boardIndex > 4 || p.board[boardIndex] !== null) return false;
+    console.log('[playCard] side=', side, 'handIndex=', handIndex, 'boardIndex=', boardIndex, 'hand.length=', p.hand.length, 'board[slot]=', p.board[boardIndex], 'mana=', p.mana);
+    if (handIndex < 0 || handIndex >= p.hand.length) {
+      console.log('[playCard] invalid handIndex');
+      return false;
+    }
+    if (boardIndex < 0 || boardIndex > 4 || p.board[boardIndex] !== null) {
+      console.log('[playCard] invalid or occupied board slot');
+      return false;
+    }
     const card = p.hand[handIndex];
-    if (card.cost > p.mana) return false;
+    if (card.cost > p.mana) {
+      console.log('[playCard] not enough mana', card.cost, '>', p.mana);
+      return false;
+    }
     p.hand.splice(handIndex, 1);
-    p.board[boardIndex] = { ...card };
+    p.board[boardIndex] = { ...card, canAttack: false };
     p.mana -= card.cost;
+    console.log('[playCard] ok, played', card.name, 'to slot', boardIndex);
     return true;
   }
 
-  function startTurn(side) {
+  function resolveDeaths(side) {
+    const p = side === 'player' ? state.player : state.enemy;
+    for (let i = 0; i < p.board.length; i++) {
+      if (p.board[i] && p.board[i].health <= 0) {
+        p.graveyard.push(p.board[i]);
+        p.board[i] = null;
+      }
+    }
+  }
+
+  function attack(attackerSide, attackerSlotIndex, targetSide, targetSlotOrFace) {
+    const attacker = attackerSide === 'player' ? state.player : state.enemy;
+    const targetP = targetSide === 'player' ? state.player : state.enemy;
+    const minion = attacker.board[attackerSlotIndex];
+    if (!minion || !minion.canAttack || minion.attack <= 0) return false;
+
+    if (targetSlotOrFace === 'face') {
+      targetP.heroHealth = Math.max(0, targetP.heroHealth - minion.attack);
+      minion.canAttack = false;
+      if (targetP.heroHealth <= 0) state.gameOver = attackerSide;
+      return true;
+    }
+
+    const targetMinion = targetP.board[targetSlotOrFace];
+    if (!targetMinion) return false;
+    targetMinion.health -= minion.attack;
+    minion.health -= targetMinion.attack;
+    minion.canAttack = false;
+    resolveDeaths('player');
+    resolveDeaths('enemy');
+    if (state.player.heroHealth <= 0) state.gameOver = 'enemy';
+    if (state.enemy.heroHealth <= 0) state.gameOver = 'player';
+    return true;
+  }
+
+  function startTurn(side, skipDraw = false) {
     const p = side === 'player' ? state.player : state.enemy;
     p.maxMana = Math.min(10, p.maxMana + 1);
     p.mana = p.maxMana;
-    drawCard(side);
+    p.board.forEach((m) => {
+      if (m) m.canAttack = true;
+    });
+    if (!skipDraw) drawCard(side);
   }
 
   function endTurn() {
+    if (state.gameOver) return;
     state.turn = state.turn === 'player' ? 'enemy' : 'player';
     state.selectedCardIndex = null;
-    state.selectedBoardSlot = null;
+    state.selectedAttackerSlot = null;
     startTurn(state.turn);
     if (state.turn === 'enemy') setTimeout(enemyTurn, 600);
     render();
   }
 
   function enemyTurn() {
+    if (state.gameOver) return;
     const p = state.enemy;
     const handIndex = p.hand.findIndex((c) => c.cost <= p.mana);
-    if (handIndex === -1) {
-      endTurn();
-      return;
+    if (handIndex !== -1) {
+      const emptySlot = p.board.findIndex((m) => m === null);
+      if (emptySlot !== -1) {
+        playCard('enemy', handIndex, emptySlot);
+        render();
+      }
     }
-    const emptySlot = p.board.findIndex((m) => m === null);
-    if (emptySlot === -1) {
-      endTurn();
-      return;
-    }
-    playCard('enemy', handIndex, emptySlot);
-    render();
-    setTimeout(() => endTurn(), 800);
+    setTimeout(() => {
+      p.board.forEach((minion, slotIndex) => {
+        if (minion && minion.canAttack && minion.attack > 0 && state.player.heroHealth > 0) {
+          attack('enemy', slotIndex, 'player', 'face');
+          render();
+        }
+      });
+      if (!state.gameOver) setTimeout(() => endTurn(), 600);
+      else render();
+    }, 800);
   }
 
   // --- DOM refs ---
@@ -129,12 +200,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     playerHand: document.getElementById('player-hand'),
     playerGraveyard: document.querySelector('#player-resources .player-graveyard'),
     playerBoard: document.getElementById('player-board'),
+    playerHero: document.getElementById('player-hero'),
     enemyDeck: document.querySelector('#enemy-resources .enemy-deck'),
     enemyPool: document.querySelector('#enemy-resources .enemy-pool'),
     enemyHand: document.getElementById('enemy-hand'),
     enemyGraveyard: document.querySelector('#enemy-resources .enemy-graveyard'),
     enemyBoard: document.getElementById('enemy-board'),
+    enemyHero: document.getElementById('enemy-hero'),
     endTurnBtn: document.getElementById('end-turn-btn'),
+    gameOverOverlay: document.getElementById('game-over-overlay'),
+    gameOverTitle: document.getElementById('game-over-title'),
+    playAgainBtn: document.getElementById('play-again-btn'),
   };
 
   function renderCardInHand(card, index, isPlayer) {
@@ -146,7 +222,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <span class="card__name">${card.name}</span>
       <span class="card__stats">${card.attack}/${card.health}</span>
     `;
-    if (isPlayer && state.turn === 'player' && card.cost <= state.player.mana) {
+    if (isPlayer && state.turn === 'player' && !state.gameOver && card.cost <= state.player.mana) {
       div.classList.add('card--playable');
       div.addEventListener('click', () => selectCard(index));
     }
@@ -163,33 +239,79 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderMinionOnBoard(minion, slotIndex, isPlayer) {
     const div = document.createElement('div');
     div.className = 'minion';
+    if (minion.health <= 0) div.classList.add('minion--dead');
     div.dataset.slotIndex = slotIndex;
     div.innerHTML = `
       <span class="minion__name">${minion.name}</span>
       <span class="minion__attack">${minion.attack}</span>
       <span class="minion__health">${minion.health}</span>
     `;
-    if (isPlayer && state.selectedCardIndex !== null) {
-      div.classList.add('minion--drop-target');
-      div.addEventListener('click', () => tryPlaySelectedToSlot(slotIndex));
+    if (state.gameOver) return div;
+    if (isPlayer) {
+      if (state.selectedCardIndex !== null) {
+        div.classList.add('minion--drop-target');
+        div.addEventListener('click', () => tryPlaySelectedToSlot(slotIndex));
+      } else if (state.turn === 'player' && minion.canAttack && minion.attack > 0) {
+        div.classList.add('minion--can-attack');
+        div.addEventListener('click', () => selectAttacker(slotIndex));
+      }
+      if (state.selectedAttackerSlot === slotIndex) div.classList.add('minion--selected-attacker');
+    } else {
+      if (state.selectedAttackerSlot !== null) {
+        div.classList.add('minion--attack-target');
+        div.addEventListener('click', () => tryAttackMinion(slotIndex));
+      }
     }
     return div;
   }
 
+  function selectAttacker(slotIndex) {
+    state.selectedAttackerSlot = state.selectedAttackerSlot === slotIndex ? null : slotIndex;
+    state.selectedCardIndex = null;
+    render();
+  }
+
+  function tryAttackMinion(enemySlotIndex) {
+    if (state.selectedAttackerSlot === null || state.turn !== 'player') return;
+    attack('player', state.selectedAttackerSlot, 'enemy', enemySlotIndex);
+    state.selectedAttackerSlot = null;
+    render();
+  }
+
+  function tryAttackFace() {
+    if (state.selectedAttackerSlot === null || state.turn !== 'player') return;
+    attack('player', state.selectedAttackerSlot, 'enemy', 'face');
+    state.selectedAttackerSlot = null;
+    render();
+  }
+
   function selectCard(handIndex) {
     state.selectedCardIndex = state.selectedCardIndex === handIndex ? null : handIndex;
+    state.selectedAttackerSlot = null;
+    console.log('[selectCard] handIndex=', handIndex, 'selectedCardIndex=', state.selectedCardIndex);
     render();
   }
 
   function tryPlaySelectedToSlot(slotIndex) {
-    if (state.selectedCardIndex === null || state.turn !== 'player') return;
+    console.log('[tryPlaySelectedToSlot] slotIndex=', slotIndex, 'selectedCardIndex=', state.selectedCardIndex, 'turn=', state.turn);
+    if (state.selectedCardIndex === null || state.turn !== 'player') {
+      console.log('[tryPlaySelectedToSlot] early return (no card selected or not your turn)');
+      return;
+    }
     const ok = playCard('player', state.selectedCardIndex, slotIndex);
+    console.log('[tryPlaySelectedToSlot] playCard result=', ok);
     if (ok) state.selectedCardIndex = null;
     render();
   }
 
   function render() {
     const isPlayerTurn = state.turn === 'player';
+
+    // Hero health
+    el.playerHero.textContent = `Hero: ${state.player.heroHealth}`;
+    el.enemyHero.textContent = `Hero: ${state.enemy.heroHealth}`;
+    el.enemyHero.className = 'enemy-hero' + (state.selectedAttackerSlot !== null && state.turn === 'player' ? ' enemy-hero--attack-target' : '');
+    el.enemyHero.onclick = state.selectedAttackerSlot !== null && state.turn === 'player' ? tryAttackFace : null;
 
     // Deck counts
     el.playerDeck.textContent = state.player.deck.length;
@@ -214,16 +336,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     const enemySlots = el.enemyBoard.querySelectorAll('.board-slot');
     state.player.board.forEach((minion, i) => {
       playerSlots[i].innerHTML = '';
-      if (minion) playerSlots[i].appendChild(renderMinionOnBoard(minion, i, true));
+      playerSlots[i].classList.remove('board-slot--drop-target');
+      playerSlots[i].onclick = null;
+      if (minion && minion.health > 0) {
+        playerSlots[i].appendChild(renderMinionOnBoard(minion, i, true));
+      } else if (state.selectedCardIndex !== null && state.turn === 'player' && !state.gameOver) {
+        playerSlots[i].classList.add('board-slot--drop-target');
+        playerSlots[i].onclick = () => {
+          console.log('[board-slot click] empty slot', i);
+          tryPlaySelectedToSlot(i);
+        };
+      }
     });
     state.enemy.board.forEach((minion, i) => {
       enemySlots[i].innerHTML = '';
-      if (minion) enemySlots[i].appendChild(renderMinionOnBoard(minion, i, false));
+      if (minion && minion.health > 0) enemySlots[i].appendChild(renderMinionOnBoard(minion, i, false));
     });
 
     // End Turn button
-    el.endTurnBtn.disabled = !isPlayerTurn;
-    el.endTurnBtn.textContent = isPlayerTurn ? 'End Turn' : "Enemy's Turn";
+    el.endTurnBtn.disabled = !isPlayerTurn || state.gameOver !== null;
+    el.endTurnBtn.textContent = state.gameOver ? 'Game Over' : isPlayerTurn ? 'End Turn' : "Enemy's Turn";
+
+    // Game over overlay
+    if (state.gameOver) {
+      el.gameOverOverlay.hidden = false;
+      el.gameOverTitle.textContent = state.gameOver === 'player' ? 'You Win!' : 'You Lose!';
+    } else {
+      el.gameOverOverlay.hidden = true;
+    }
   }
 
   function initGame() {
@@ -236,16 +376,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     state.player.maxMana = 0;
     state.enemy.mana = 0;
     state.enemy.maxMana = 0;
+    state.player.heroHealth = HERO_MAX_HEALTH;
+    state.enemy.heroHealth = HERO_MAX_HEALTH;
     state.turn = 'player';
+    state.gameOver = null;
     state.selectedCardIndex = null;
-    // Player goes first: draw 3, then start turn draws 1 and gives mana
-    for (let i = 0; i < 3; i++) drawCard('player');
+    state.selectedAttackerSlot = null;
+    for (let i = 0; i < 4; i++) drawCard('player');
     for (let i = 0; i < 4; i++) drawCard('enemy');
-    startTurn('player');
+    startTurn('player', true);
+    el.gameOverOverlay.hidden = true;
     render();
   }
 
   el.endTurnBtn.addEventListener('click', endTurn);
+  el.playAgainBtn.addEventListener('click', initGame);
   initGame();
 
   // --- Settings menu (Escape to open/close) ---

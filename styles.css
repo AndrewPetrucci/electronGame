@@ -271,6 +271,35 @@ body {
   border-right-color: inherit;
 }
 
+.enemy-hero,
+.player-hero {
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.enemy-hero {
+  background: rgba(88, 26, 36, 0.6);
+  color: #f8a0a0;
+}
+
+.player-hero {
+  background: rgba(15, 52, 96, 0.6);
+  color: #8ec4f4;
+}
+
+.enemy-hero--attack-target {
+  cursor: pointer;
+  border: 2px dashed #e94560;
+  border-radius: 6px;
+}
+
+.enemy-hero--attack-target:hover {
+  background: rgba(233, 69, 96, 0.3);
+}
+
 .enemy-board, .enemy-resources  {
   background-color: #581a24;
   border: 2px solid #eb4e68;
@@ -381,6 +410,18 @@ body {
   padding: 0.25rem;
 }
 
+.player-board .board-slot--drop-target {
+  cursor: pointer;
+  background: rgba(58, 142, 244, 0.2);
+  border-radius: 6px;
+  border: 2px dashed rgba(58, 142, 244, 0.6);
+}
+
+.player-board .board-slot--drop-target:hover {
+  background: rgba(58, 142, 244, 0.35);
+  border-color: #3a8ef4;
+}
+
 .minion {
   width: 100%;
   min-height: 2.5rem;
@@ -434,4 +475,62 @@ body {
 .minion--drop-target:hover {
   background: rgba(58, 142, 244, 0.2);
   border-color: #3a8ef4;
+}
+
+.minion--can-attack {
+  cursor: pointer;
+  border-color: rgba(255, 200, 0, 0.7);
+}
+
+.minion--can-attack:hover {
+  border-color: #ffc800;
+  box-shadow: 0 0 8px rgba(255, 200, 0, 0.4);
+}
+
+.minion--selected-attacker {
+  border-color: #ffc800;
+  box-shadow: 0 0 0 2px rgba(255, 200, 0, 0.6);
+}
+
+.minion--attack-target {
+  cursor: pointer;
+  border-color: rgba(233, 69, 96, 0.9);
+}
+
+.minion--attack-target:hover {
+  background: rgba(233, 69, 96, 0.25);
+  border-color: #e94560;
+}
+
+/* Game over overlay */
+.game-over-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+}
+
+.game-over-overlay[hidden] {
+  display: none;
+}
+
+.game-over-panel {
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  border: 2px solid rgba(233, 69, 96, 0.5);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.game-over-title {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  color: #eee;
+}
+
+.game-over-panel .settings-btn {
+  margin-top: 0.5rem;
 }
