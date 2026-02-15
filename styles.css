@@ -30,6 +30,31 @@ body {
   height: 100%;
 }
 
+.attack-btn {
+  position: absolute;
+  right: 120px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  color: #eee;
+  background: rgba(243, 156, 18, 0.9);
+  border: 1px solid rgba(243, 156, 18, 1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.attack-btn:hover:not(:disabled) {
+  background: rgba(243, 156, 18, 1);
+  border-color: #f39c12;
+}
+
+.attack-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .end-turn-btn {
   position: absolute;
   right: 4px;
@@ -392,6 +417,37 @@ body {
   opacity: 0.9;
 }
 
+.card--spell {
+  border-color: rgba(155, 89, 182, 0.5);
+}
+
+.card--spell.card--playable:hover {
+  border-color: #9b59b6;
+  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
+}
+
+.minion--spell-target {
+  cursor: pointer;
+  border-width: 2px;
+  border-color: #9b59b6;
+  box-shadow: 0 0 0 2px rgba(155, 89, 182, 0.5);
+}
+
+.minion--spell-target:hover {
+  background: rgba(155, 89, 182, 0.3);
+  border-color: #b07cc6;
+  box-shadow: 0 0 0 2px rgba(155, 89, 182, 0.7);
+}
+
+.enemy-hero--spell-target {
+  cursor: pointer;
+  border: 2px dashed rgba(155, 89, 182, 0.8);
+}
+
+.enemy-hero--spell-target:hover {
+  background: rgba(155, 89, 182, 0.2);
+}
+
 .card--back {
   background: linear-gradient(145deg, #3d2d2d 0%, #2d1a1a 100%);
   border-color: rgba(233, 69, 96, 0.4);
@@ -487,9 +543,9 @@ body {
   box-shadow: 0 0 8px rgba(255, 200, 0, 0.4);
 }
 
-.minion--selected-attacker {
-  border-color: #ffc800;
-  box-shadow: 0 0 0 2px rgba(255, 200, 0, 0.6);
+.minion--declared-attacker {
+  border-color: #f39c12;
+  box-shadow: 0 0 0 2px rgba(243, 156, 18, 0.6);
 }
 
 .minion--attack-target {
