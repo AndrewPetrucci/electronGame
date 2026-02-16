@@ -342,8 +342,8 @@ body {
   flex-wrap: nowrap;
   justify-content: center;
   align-items: stretch;
-  gap: 0.25rem;
-  padding: 0.25rem;
+  /* gap: 0.25rem;
+  padding: 0.25rem; */
   width: 65%;
   flex-shrink: 0;
 }
@@ -359,19 +359,19 @@ body {
 
 .card {
   width: 100%;
-  min-height: 3.5rem;
+  height: 8rem;
+  min-height: 6rem;
   background: linear-gradient(145deg, #2d2d44 0%, #1a1a2e 100%);
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
-  padding: 0.35rem;
+  padding: 0.2rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
+  align-items: stretch;
+  justify-content: flex-start;
   cursor: default;
   position: relative;
   font-size: 0.7rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .card--playable {
@@ -390,10 +390,33 @@ body {
   box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.5);
 }
 
+.card__header {
+  flex: 0 0 10%;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.15rem;
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.75) 0%, transparent 100%);
+  border-radius: 4px 4px 0 0;
+}
+
+.card__spacer {
+  flex: 0 0 50%;
+  min-height: 0;
+}
+
 .card__cost {
-  position: absolute;
-  top: 2px;
-  left: 4px;
+  flex: 0 0 2rem;
+  width: 2rem;
+  min-width: 2rem;
+  max-width: 2rem;
+}
+
+.card__cost-inner {
   width: 1.1rem;
   height: 1.1rem;
   background: linear-gradient(180deg, #4a90d9 0%, #2d5a8a 100%);
@@ -402,19 +425,78 @@ body {
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
 }
 
-.card__name {
+.card__header .card__name {
+  flex: 1;
+  min-width: 0;
   font-weight: 600;
   text-align: center;
-  margin-top: 0.9rem;
+  font-size: 0.6rem;
   line-height: 1.1;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.card__stats {
+.card__pt {
+  flex: 0 0 2rem;
+  width: 2rem;
+  min-width: 2rem;
+  max-width: 2rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  opacity: 0.9;
+  text-align: right;
+}
+
+.card__art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #2d2d44 0%, #1a1a2e 100%);
+}
+
+.card__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 80%;
+  object-fit: contain;
+  transition: opacity 0.2s ease;
+}
+
+.card__img--alt {
+  opacity: 0;
+}
+
+.card:hover .card__img:not(.card__img--alt) {
+  opacity: 0;
+}
+
+.card:hover .card__img--alt {
+  opacity: 1;
+}
+
+.card__rules {
+  flex: 0 0 40%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 0.65rem;
   opacity: 0.9;
+  text-align: center;
+  padding: 0.15rem;
+  line-height: 1.2;
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.75) 0%, transparent 100%);
+  border-radius: 0 0 4px 4px;
 }
 
 .card--spell {
@@ -480,46 +562,105 @@ body {
 
 .minion {
   width: 100%;
-  min-height: 2.5rem;
+  height: 100%;
+  min-height: 4rem;
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 2px solid rgba(255, 255, 255, 0.25);
   border-radius: 6px;
-  padding: 0.25rem;
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  grid-template-rows: 1fr auto;
-  gap: 0 0.25rem;
-  align-items: center;
+  padding: 0.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   font-size: 0.65rem;
   position: relative;
+  transition: transform 0.25s ease, border-color 0.2s ease;
 }
 
-.minion__name {
-  grid-column: 1 / -1;
-  text-align: center;
+.minion__header {
+  flex: 0 0 10%;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.15rem;
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.75) 0%, transparent 100%);
+  border-radius: 4px 4px 0 0;
+}
+
+.minion__header .minion__name {
+  flex: 1;
+  min-width: 0;
   font-weight: 600;
+  text-align: center;
+  font-size: 0.6rem;
   line-height: 1.1;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.minion__attack {
-  width: 1.25rem;
-  height: 1.25rem;
-  background: #c9302c;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.minion__pt {
+  flex-shrink: 0;
+  font-size: 0.6rem;
   font-weight: 700;
+  opacity: 0.9;
 }
 
-.minion__health {
-  width: 1.25rem;
-  height: 1.25rem;
-  background: #1e7e34;
+.minion__spacer {
+  flex: 0 0 50%;
+  min-height: 0;
+}
+
+.minion__art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   border-radius: 4px;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
+}
+
+.minion__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 80%;
+  object-fit: contain;
+  transition: opacity 0.2s ease;
+}
+
+.minion__img--alt {
+  opacity: 0;
+}
+
+.minion:hover .minion__img:not(.minion__img--alt) {
+  opacity: 0;
+}
+
+.minion:hover .minion__img--alt {
+  opacity: 1;
+}
+
+.minion__rules {
+  flex: 0 0 40%;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 0.65rem;
+  opacity: 0.9;
+  text-align: center;
+  padding: 0.15rem;
+  line-height: 1.2;
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.75) 0%, transparent 100%);
+  border-radius: 0 0 4px 4px;
   font-weight: 700;
 }
 
@@ -544,8 +685,9 @@ body {
 }
 
 .minion--declared-attacker {
+  transform: translateY(-12px);
   border-color: #f39c12;
-  box-shadow: 0 0 0 2px rgba(243, 156, 18, 0.6);
+  box-shadow: 0 0 0 2px rgba(243, 156, 18, 0.6), 0 8px 16px rgba(0, 0, 0, 0.35);
 }
 
 .minion--attack-target {
@@ -589,4 +731,123 @@ body {
 
 .game-over-panel .settings-btn {
   margin-top: 0.5rem;
+}
+
+/* Animation overlay: plays CSS animations (slam, impact, etc.) */
+.animation-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 200;
+  overflow: hidden;
+}
+
+/* Slam: projectile moves from attacker to target, then impact burst */
+.anim-slam {
+  position: fixed;
+  width: 36px;
+  height: 36px;
+  margin-left: -18px;
+  margin-top: -18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffcc66, #e67e22);
+  box-shadow: 0 0 12px rgba(230, 126, 34, 0.8);
+  animation: slam-fly var(--slam-duration, 0.35s) ease-in forwards;
+}
+
+.anim-slam::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 100, 50, 0.6) 0%, transparent 70%);
+  opacity: 0;
+  animation: slam-impact var(--slam-duration, 0.35s) ease-out forwards;
+  animation-delay: calc(var(--slam-duration, 0.35s) * 0.6);
+}
+
+@keyframes slam-fly {
+  0% {
+    left: var(--from-x, 0);
+    top: var(--from-y, 0);
+    transform: scale(1);
+    opacity: 1;
+  }
+  55% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    left: var(--to-x, 0);
+    top: var(--to-y, 0);
+    transform: scale(0.4);
+    opacity: 0.9;
+  }
+}
+
+@keyframes slam-impact {
+  0% {
+    transform: scale(0.3);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* Spell: magic projectile from hand to target */
+.anim-spell {
+  position: fixed;
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  margin-top: -14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #b19cd9, #6b46c1);
+  box-shadow: 0 0 16px rgba(107, 70, 193, 0.9), 0 0 4px rgba(255, 255, 255, 0.4);
+  animation: spell-fly var(--spell-duration, 0.4s) ease-out forwards;
+}
+
+.anim-spell::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(155, 89, 182, 0.5) 0%, transparent 70%);
+  opacity: 0;
+  animation: spell-impact var(--spell-duration, 0.4s) ease-out forwards;
+  animation-delay: calc(var(--spell-duration, 0.4s) * 0.65);
+}
+
+@keyframes spell-fly {
+  0% {
+    left: var(--from-x, 0);
+    top: var(--from-y, 0);
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    left: var(--to-x, 0);
+    top: var(--to-y, 0);
+    transform: scale(0.5);
+    opacity: 0.95;
+  }
+}
+
+@keyframes spell-impact {
+  0% {
+    transform: scale(0.2);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Generic animation host: add any class to play that animation */
+.anim-overlay-node {
+  position: fixed;
+  pointer-events: none;
 }

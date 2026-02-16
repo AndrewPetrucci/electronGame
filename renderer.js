@@ -1,37 +1,16 @@
-document.addEventListener('DOMContentLoaded', async () => {
-  // --- Card definitions: minions + spells ---
-  const CARD_POOL = [
-    // Minions
-    { id: 'm1', type: 'minion', name: 'Wisp', cost: 0, attack: 1, health: 1 },
-    { id: 'm2', type: 'minion', name: 'Murloc', cost: 1, attack: 1, health: 2 },
-    { id: 'm3', type: 'minion', name: 'Riverpaw', cost: 2, attack: 2, health: 2 },
-    { id: 'm4', type: 'minion', name: 'Ogre', cost: 3, attack: 3, health: 3 },
-    { id: 'm5', type: 'minion', name: 'Chillwind', cost: 4, attack: 4, health: 5 },
-    { id: 'm6', type: 'minion', name: 'Boulderfist', cost: 6, attack: 6, health: 7 },
-    { id: 'm7', type: 'minion', name: 'Wolf Rider', cost: 3, attack: 3, health: 1 },
-    { id: 'm8', type: 'minion', name: 'Raid Leader', cost: 3, attack: 2, health: 2 },
-    { id: 'm9', type: 'minion', name: 'Spiteful Smith', cost: 5, attack: 4, health: 6 },
-    { id: 'm10', type: 'minion', name: 'Frostwolf', cost: 2, attack: 2, health: 2 },
-    // Offensive spells
-    { id: 's1', type: 'spell', name: 'Smite', cost: 0, effect: 'deal_damage', value: 1, target: 'enemy_minion' },
-    { id: 's2', type: 'spell', name: 'Arcane Shot', cost: 1, effect: 'deal_damage', value: 2, target: 'enemy_any' },
-    { id: 's3', type: 'spell', name: 'Fireball', cost: 4, effect: 'deal_damage', value: 6, target: 'enemy_any' },
-    // Defensive spells
-    { id: 's4', type: 'spell', name: 'Heal', cost: 2, effect: 'heal_hero', value: 5, target: 'none' },
-    { id: 's5', type: 'spell', name: 'Shield', cost: 1, effect: 'buff', attack: 1, health: 2, target: 'friendly_minion' },
-    { id: 's6', type: 'spell', name: 'Holy Light', cost: 2, effect: 'heal_hero', value: 6, target: 'none' },
-  ];
+import { CARD_POOL } from './cards/index.js';
 
+document.addEventListener('DOMContentLoaded', async () => {
   const CARD_BY_ID = Object.fromEntries(CARD_POOL.map((c) => [c.id, c]));
 
   // Decklists: array of card ids (20 cards each). Include minions + spells.
   const PLAYER_DECKLIST = [
-    'm1', 'm2', 'm2', 'm3', 'm10', 's1', 's1', 's4', 's5',
-    'm7', 'm4', 'm8', 'm5', 's2', 's6', 'm9', 'm6',
+    'm1', 'm2', 'm2', 'm3', 's1', 's1', 's4', 's5',
+    'm7', 'm4', 'm8', 'm5', 's2', 's6', 'm6',
   ];
   const ENEMY_DECKLIST = [
     'm2', 'm3', 'm4', 'm4', 'm5', 's1', 's2', 's4',
-    'm8', 'm9', 'm6', 's3', 's5', 's6', 'm7', 'm10', 'm1',
+    'm8', 'm6', 's3', 's5', 's6', 'm7', 'm1',
   ];
 
   function createCard(cardDef) {
@@ -220,6 +199,66 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (state.gameOver) return;
     const p = state.enemy;
     let played = false;
+    let spellPlayedWithAnimation = false;
+
+    function runEnemyAttackPhase() {
+      const enemy = state.enemy;
+      const player = state.player;
+      const attacks = [];
+      for (let slotIndex = 0; slotIndex < enemy.board.length; slotIndex++) {
+        const attacker = enemy.board[slotIndex];
+        if (attacker && attacker.canAttack && attacker.attack > 0) attacks.push(slotIndex);
+      }
+      function resolveEnemyAttacks() {
+        for (const slotIndex of attacks) {
+          const attacker = enemy.board[slotIndex];
+          if (!attacker || !attacker.canAttack || attacker.attack <= 0) continue;
+          const targetMinion = player.board[slotIndex];
+          if (targetMinion && targetMinion.health > 0) {
+            targetMinion.health -= attacker.attack;
+            attacker.health -= targetMinion.attack;
+          } else {
+            player.heroHealth = Math.max(0, player.heroHealth - attacker.attack);
+            if (player.heroHealth <= 0) state.gameOver = 'enemy';
+          }
+          attacker.canAttack = false;
+        }
+        resolveDeaths('player');
+        resolveDeaths('enemy');
+        if (state.player.heroHealth <= 0) state.gameOver = 'enemy';
+        if (state.enemy.heroHealth <= 0) state.gameOver = 'player';
+        render();
+        if (!state.gameOver) setTimeout(() => endTurn(), 600);
+        else render();
+      }
+      if (attacks.length === 0) {
+        resolveEnemyAttacks();
+        return;
+      }
+      const enemySlots = el.enemyBoard.querySelectorAll('.board-slot');
+      const playerSlots = el.playerBoard.querySelectorAll('.board-slot');
+      let index = 0;
+      function runNext() {
+        if (index >= attacks.length) {
+          resolveEnemyAttacks();
+          return;
+        }
+        const slotIndex = attacks[index++];
+        const fromEl = enemySlots[slotIndex];
+        const targetMinion = player.board[slotIndex];
+        const toEl = (targetMinion && targetMinion.health > 0)
+          ? playerSlots[slotIndex]
+          : el.playerHero;
+        const fromRect = fromEl.getBoundingClientRect();
+        const toRect = toEl.getBoundingClientRect();
+        playOverlayAnimation(
+          { fromRect, toRect, durationMs: 380 },
+          runNext
+        );
+      }
+      runNext();
+    }
+
     for (let hi = 0; hi < p.hand.length; hi++) {
       const c = p.hand[hi];
       if (c.cost > p.mana) continue;
@@ -232,58 +271,53 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       } else if (c.type === 'spell') {
         if (c.target === 'none') {
-          playSpell('enemy', hi, null);
+          playSpellWithAnimation('enemy', hi, null, () => {
+            render();
+            setTimeout(runEnemyAttackPhase, 400);
+          });
           played = true;
+          spellPlayedWithAnimation = true;
           break;
         }
         if (c.target === 'enemy_hero' || c.target === 'enemy_any') {
-          playSpell('enemy', hi, { type: 'enemy_hero' });
+          playSpellWithAnimation('enemy', hi, { type: 'enemy_hero' }, () => {
+            render();
+            setTimeout(runEnemyAttackPhase, 400);
+          });
           played = true;
+          spellPlayedWithAnimation = true;
           break;
         }
         if ((c.target === 'enemy_minion' || c.target === 'enemy_any') && state.player.board.some((m) => m && m.health > 0)) {
           const idx = state.player.board.findIndex((m) => m && m.health > 0);
           if (idx !== -1) {
-            playSpell('enemy', hi, { type: 'enemy_minion', slotIndex: idx });
+            playSpellWithAnimation('enemy', hi, { type: 'enemy_minion', slotIndex: idx }, () => {
+              render();
+              setTimeout(runEnemyAttackPhase, 400);
+            });
             played = true;
+            spellPlayedWithAnimation = true;
             break;
           }
         }
         if (c.target === 'friendly_minion' && p.board.some((m) => m && m.health > 0)) {
           const idx = p.board.findIndex((m) => m && m.health > 0);
           if (idx !== -1) {
-            playSpell('enemy', hi, { type: 'friendly_minion', slotIndex: idx });
+            playSpellWithAnimation('enemy', hi, { type: 'friendly_minion', slotIndex: idx }, () => {
+              render();
+              setTimeout(runEnemyAttackPhase, 400);
+            });
             played = true;
+            spellPlayedWithAnimation = true;
             break;
           }
         }
       }
     }
-    if (played) render();
-    setTimeout(() => {
-      const enemy = state.enemy;
-      const player = state.player;
-      for (let slotIndex = 0; slotIndex < enemy.board.length; slotIndex++) {
-        const attacker = enemy.board[slotIndex];
-        if (!attacker || !attacker.canAttack || attacker.attack <= 0) continue;
-        const targetMinion = player.board[slotIndex];
-        if (targetMinion && targetMinion.health > 0) {
-          targetMinion.health -= attacker.attack;
-          attacker.health -= targetMinion.attack;
-        } else {
-          player.heroHealth = Math.max(0, player.heroHealth - attacker.attack);
-          if (player.heroHealth <= 0) state.gameOver = 'enemy';
-        }
-        attacker.canAttack = false;
-      }
-      resolveDeaths('player');
-      resolveDeaths('enemy');
-      if (state.player.heroHealth <= 0) state.gameOver = 'enemy';
-      if (state.enemy.heroHealth <= 0) state.gameOver = 'player';
+    if (played && !spellPlayedWithAnimation) {
       render();
-      if (!state.gameOver) setTimeout(() => endTurn(), 600);
-      else render();
-    }, 800);
+      setTimeout(runEnemyAttackPhase, 800);
+    }
   }
 
   // --- DOM refs ---
@@ -305,7 +339,87 @@ document.addEventListener('DOMContentLoaded', async () => {
     gameOverOverlay: document.getElementById('game-over-overlay'),
     gameOverTitle: document.getElementById('game-over-title'),
     playAgainBtn: document.getElementById('play-again-btn'),
+    animationOverlay: document.getElementById('animation-overlay'),
   };
+
+  /** Play a CSS animation on the overlay. Options: { animationClass, durationMs, fromRect, toRect, customProps }. Calls onEnd when done. */
+  function playOverlayAnimation(options, onEnd) {
+    const {
+      animationClass = 'anim-slam',
+      durationMs = 350,
+      fromRect,
+      toRect,
+      customProps = {},
+    } = options;
+    const node = document.createElement('div');
+    node.className = animationClass + ' anim-overlay-node';
+    if (fromRect && toRect) {
+      const fromCx = fromRect.left + fromRect.width / 2;
+      const fromCy = fromRect.top + fromRect.height / 2;
+      const toCx = toRect.left + toRect.width / 2;
+      const toCy = toRect.top + toRect.height / 2;
+      node.style.setProperty('--from-x', fromCx + 'px');
+      node.style.setProperty('--from-y', fromCy + 'px');
+      node.style.setProperty('--to-x', toCx + 'px');
+      node.style.setProperty('--to-y', toCy + 'px');
+      const dur = (durationMs / 1000) + 's';
+      node.style.setProperty('--slam-duration', dur);
+      node.style.setProperty('--spell-duration', dur);
+    }
+    Object.entries(customProps).forEach(([key, value]) => node.style.setProperty(key, value));
+    const done = () => {
+      node.remove();
+      onEnd?.();
+    };
+    node.addEventListener('animationend', done, { once: true });
+    el.animationOverlay.appendChild(node);
+  }
+
+  /** Return the DOM element that is the spell target (for getBoundingClientRect). */
+  function getSpellTargetElement(side, target) {
+    if (!target || target === null) {
+      return side === 'player' ? el.playerHero : el.enemyHero;
+    }
+    if (target.type === 'enemy_hero') {
+      return side === 'player' ? el.enemyHero : el.playerHero;
+    }
+    if (target.type === 'enemy_minion' && target.slotIndex != null) {
+      const board = side === 'player' ? el.enemyBoard : el.playerBoard;
+      return board.querySelectorAll('.board-slot')[target.slotIndex];
+    }
+    if (target.type === 'friendly_minion' && target.slotIndex != null) {
+      const board = side === 'player' ? el.playerBoard : el.enemyBoard;
+      return board.querySelectorAll('.board-slot')[target.slotIndex];
+    }
+    return side === 'player' ? el.playerHero : el.enemyHero;
+  }
+
+  /** Play spell with projectile animation, then resolve spell and render. Calls onDone(ok) with playSpell result. */
+  function playSpellWithAnimation(side, handIndex, target, onDone) {
+    const heroEl = side === 'player' ? el.playerHero : el.enemyHero;
+    const toEl = getSpellTargetElement(side, target);
+    if (!toEl) {
+      const ok = playSpell(side, handIndex, target);
+      onDone?.(ok);
+      render();
+      return;
+    }
+    const fromRect = heroEl.getBoundingClientRect();
+    const toRect = toEl.getBoundingClientRect();
+    playOverlayAnimation(
+      {
+        animationClass: 'anim-spell',
+        durationMs: 400,
+        fromRect,
+        toRect,
+      },
+      () => {
+        const ok = playSpell(side, handIndex, target);
+        onDone?.(ok);
+        render();
+      }
+    );
+  }
 
   function getSpellText(card) {
     if (card.effect === 'deal_damage') return `Deal ${card.value}`;
@@ -319,19 +433,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     div.className = 'card card--in-hand' + (state.selectedCardIndex === index && isPlayer ? ' card--selected' : '');
     if (card.type === 'spell') div.classList.add('card--spell');
     div.dataset.handIndex = index;
-    if (card.type === 'spell') {
-      div.innerHTML = `
-        <span class="card__cost">${card.cost}</span>
+    const artHtml = (card.img || card.alt_img) ? `
+      <div class="card__art">
+        ${card.img ? `<img class="card__img" src="${card.img}" alt="">` : ''}
+        ${card.alt_img ? `<img class="card__img card__img--alt" src="${card.alt_img}" alt="">` : ''}
+      </div>
+    ` : '<div class="card__art"></div>';
+    const ptText = card.type === 'spell' ? '' : `${card.attack}/${card.health}`;
+    const rulesText = card.type === 'spell' ? getSpellText(card) : '';
+    div.innerHTML = `
+      <div class="card__header">
+        <span class="card__cost"><span class="card__cost-inner">${card.cost}</span></span>
         <span class="card__name">${card.name}</span>
-        <span class="card__stats">${getSpellText(card)}</span>
-      `;
-    } else {
-      div.innerHTML = `
-        <span class="card__cost">${card.cost}</span>
-        <span class="card__name">${card.name}</span>
-        <span class="card__stats">${card.attack}/${card.health}</span>
-      `;
-    }
+        <span class="card__pt">${ptText}</span>
+      </div>
+      <div class="card__spacer"></div>
+      ${artHtml}
+      <div class="card__rules">${rulesText}</div>
+    `;
     if (isPlayer && state.turn === 'player' && !state.gameOver && card.cost <= state.player.mana) {
       div.classList.add('card--playable');
       div.addEventListener('click', () => selectCard(index));
@@ -351,10 +470,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     div.className = 'minion';
     if (minion.health <= 0) div.classList.add('minion--dead');
     div.dataset.slotIndex = slotIndex;
+    const artHtml = (minion.img || minion.alt_img) ? `
+      <div class="minion__art">
+        ${minion.img ? `<img class="minion__img" src="${minion.img}" alt="">` : ''}
+        ${minion.alt_img ? `<img class="minion__img minion__img--alt" src="${minion.alt_img}" alt="">` : ''}
+      </div>
+    ` : '<div class="minion__art"></div>';
     div.innerHTML = `
-      <span class="minion__name">${minion.name}</span>
-      <span class="minion__attack">${minion.attack}</span>
-      <span class="minion__health">${minion.health}</span>
+      <div class="minion__header">
+        <span class="minion__name">${minion.name}</span>
+        <span class="minion__pt">${minion.attack}/${minion.health}</span>
+      </div>
+      <div class="minion__spacer"></div>
+      ${artHtml}
+      <div class="minion__rules"></div>
     `;
     if (state.gameOver) return div;
     if (isPlayer) {
@@ -384,8 +513,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const card = state.player.hand[handIndex];
     if (card && card.type === 'spell' && card.target === 'none') {
       if (card.cost <= state.player.mana) {
-        playSpell('player', handIndex, null);
-        render();
+        playSpellWithAnimation('player', handIndex, null);
       }
       return;
     }
@@ -398,9 +526,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (state.selectedCardIndex === null || state.turn !== 'player') return;
     const card = state.player.hand[state.selectedCardIndex];
     if (!card || card.type !== 'spell') return;
-    const ok = playSpell('player', state.selectedCardIndex, target);
-    if (ok) state.selectedCardIndex = null;
-    render();
+    if (card.cost > state.player.mana) return;
+    const handIndex = state.selectedCardIndex;
+    playSpellWithAnimation('player', handIndex, target, (ok) => {
+      if (ok) state.selectedCardIndex = null;
+    });
   }
 
   function tryPlaySelectedToSlot(slotIndex) {
@@ -533,8 +663,41 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   el.attackBtn.addEventListener('click', () => {
-    resolveDeclaredAttacks();
-    render();
+    if (state.turn !== 'player' || state.declaredAttackers.length === 0) return;
+    const player = state.player;
+    const enemy = state.enemy;
+    const attacks = state.declaredAttackers.filter((slotIndex) => {
+      const attacker = player.board[slotIndex];
+      return attacker && attacker.canAttack && attacker.attack > 0;
+    });
+    if (attacks.length === 0) {
+      resolveDeclaredAttacks();
+      render();
+      return;
+    }
+    const playerSlots = el.playerBoard.querySelectorAll('.board-slot');
+    const enemySlots = el.enemyBoard.querySelectorAll('.board-slot');
+    let index = 0;
+    function runNext() {
+      if (index >= attacks.length) {
+        resolveDeclaredAttacks();
+        render();
+        return;
+      }
+      const slotIndex = attacks[index++];
+      const fromEl = playerSlots[slotIndex];
+      const targetMinion = enemy.board[slotIndex];
+      const toEl = (targetMinion && targetMinion.health > 0)
+        ? enemySlots[slotIndex]
+        : el.enemyHero;
+      const fromRect = fromEl.getBoundingClientRect();
+      const toRect = toEl.getBoundingClientRect();
+      playOverlayAnimation(
+        { fromRect, toRect, durationMs: 380 },
+        runNext
+      );
+    }
+    runNext();
   });
   el.endTurnBtn.addEventListener('click', endTurn);
   el.playAgainBtn.addEventListener('click', initGame);

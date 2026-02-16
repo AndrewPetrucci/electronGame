@@ -3,9 +3,10 @@ const path = require('path');
 const fs = require('fs');
 
 function createWindow() {
+  // 16:9 aspect ratio (YouTube-style)
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 700,
+    width: 1280,
+    height: 720,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
